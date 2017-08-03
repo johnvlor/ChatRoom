@@ -33,6 +33,7 @@ namespace Client
             byte[] recievedMessage = new byte[256];
             stream.Read(recievedMessage, 0, recievedMessage.Length);
             UI.DisplayMessage(Encoding.ASCII.GetString(recievedMessage));
+            stream.Flush();
         }
 
         public void RunChat()
@@ -41,10 +42,9 @@ namespace Client
             {
                 Thread receiveMessage = new Thread(Recieve);
                 receiveMessage.Start();
-                //Thread sendMessage = new Thread(Send);
-                //sendMessage.Start();
-                Send();
-            }           
+                Thread sendMessage = new Thread(Send);
+                sendMessage.Start();            
+            }
         }
 
     }

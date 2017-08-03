@@ -29,8 +29,10 @@ namespace Server
             while (true)
             {
                 AcceptClient();
-                string message = client.Recieve();
-                Respond(message);
+                //Thread getMessageThread = new Thread(() => GetMessage());
+                //getMessageThread.Start();
+                //string message = client.Recieve();
+                //Respond(message);
             }
         }
         private void AcceptClient()
@@ -44,20 +46,7 @@ namespace Server
                 Console.WriteLine("Connected");
                 Thread clientThread = new Thread(() => HandleClient(clientSocket));
                 clientThread.Start();
-                //NetworkStream stream = clientSocket.GetStream();
-                //client = new Client(stream, clientSocket);
 
-                //userName = GetUserName(stream);
-                //string message = client.Recieve();
-                //Respond(message);
-                //AddClient(clientSocket);
-
-                //foreach (KeyValuePair<string, TcpClient> pair in clientList)
-                //{
-                //    Console.WriteLine(pair.Key + " - " + pair.Value);
-                //}
-
-                
             }
         }
         private void Respond(string body)
@@ -84,13 +73,17 @@ namespace Server
             {
                 Console.WriteLine("\n" + error.ToString());
             }
-            
+
+            Thread getMessageThread = new Thread(() => GetMessage());
+            getMessageThread.Start();
+
+            //Task.Run(() => GetMessage());
         }
 
         public void AddClient(TcpClient newClient)
         {
             clientList.Add(userName, newClient);
-            Console.WriteLine("New User Added");
+            Console.WriteLine("{0} has joined the chatroom.", userName);
         }
 
         public string GetUserName(NetworkStream stream)
@@ -101,6 +94,15 @@ namespace Server
             stream.Read(userName, 0, userName.Length);
             string inputName = System.Text.Encoding.ASCII.GetString(userName).TrimEnd('\0');
             return inputName;
+        }
+
+        public void GetMessage()
+        {
+            while (true)
+            {
+                string message = client.Recieve();
+                Respond(message);
+            }
         }
 
     }
