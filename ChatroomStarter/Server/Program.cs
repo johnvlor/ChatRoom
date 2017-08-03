@@ -10,7 +10,9 @@ namespace Server
     {
         static void Main(string[] args)
         {
-            new Server().Run();
+            Server server = new Server();
+            Task.Run(() => server.Run());
+            Console.WriteLine("Press any key to exit.");
             Console.ReadLine();
         }
     }
