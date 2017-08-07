@@ -1,0 +1,4 @@
+Chat Room
+
+1.  Try to implement Single Responsibility by having some of the methods only do one thing, such as the AddMessageToQueue method, used to only add all messages to the queue.
+2. Also, applied the same to method AddToClientList, used to only add clients to the dictonary.

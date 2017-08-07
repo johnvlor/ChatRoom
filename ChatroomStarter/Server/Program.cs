@@ -13,6 +13,7 @@ namespace Server
         {
             Server server = new Server();
             Task.Run(() => server.Run());
+            //server.Run();
 
             Console.ReadLine();
         }
