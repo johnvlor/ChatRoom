@@ -12,46 +12,43 @@ namespace Server
 {
     class Server
     {
-        public static Client client;
+        //public static Client client;
         TcpListener server;
 
         public Dictionary<string, TcpClient> clientList;
+        public static Queue<string> messageList;
         string userName = null;
 
         public Server()
         {
             server = new TcpListener(IPAddress.Parse("127.0.0.1"), 9999);
             clientList = new Dictionary<string, TcpClient>();
+            messageList = new Queue<string>();
             server.Start();
         }
         public void Run()
         {
-            while (true)
-            {
-                AcceptClient();
-                //Thread getMessageThread = new Thread(() => GetMessage());
-                //getMessageThread.Start();
-                //string message = client.Recieve();
-                //Respond(message);
-            }
+            Thread clientThread = new Thread(() => AcceptClient());
+            clientThread.Start();
         }
-        private void AcceptClient()
+        public void AcceptClient()
         {
             Console.WriteLine("Listening for connections...");
-            TcpClient clientSocket = default(TcpClient);
             
             while (true)
-            {
+            {               
+                TcpClient clientSocket = default(TcpClient);
                 clientSocket = server.AcceptTcpClient();
                 Console.WriteLine("Connected");
+
+                Task.Run(()=>CheckForBroadcast());
                 Thread clientThread = new Thread(() => HandleClient(clientSocket));
                 clientThread.Start();
-
             }
         }
-        private void Respond(string body)
+        public static void Respond(Client client, string body)
         {
-             client.Send(body);
+            client.Send(body);
         }
 
         public void HandleClient(TcpClient clientSocket)
@@ -59,36 +56,38 @@ namespace Server
             try
             {
                 NetworkStream stream = clientSocket.GetStream();
+
                 userName = GetUserName(stream);
-                client = new Client(stream, clientSocket);
-                AddClient(clientSocket);
+                Client client = new Client(stream, clientSocket, userName);
 
-                foreach (KeyValuePair<string, TcpClient> pair in clientList)
-                {
-                    Console.WriteLine(pair.Key + " - " + pair.Value);
-                }
+                AddToClientList(clientSocket);
+                string message = "";
+                AddMessageToQueue(message = userName + " has joined the chatroom.");
 
+                Thread clientThread = new Thread(() => GetMessage(client, userName));
+                clientThread.Start();
             }
             catch (Exception error)
             {
                 Console.WriteLine("\n" + error.ToString());
             }
 
-            Thread getMessageThread = new Thread(() => GetMessage());
-            getMessageThread.Start();
-
-            //Task.Run(() => GetMessage());
         }
 
-        public void AddClient(TcpClient newClient)
+        public void AddToClientList(TcpClient clientSocket)
         {
-            clientList.Add(userName, newClient);
-            Console.WriteLine("{0} has joined the chatroom.", userName);
+            clientList.Add(userName, clientSocket);
+            Console.WriteLine("{0} has joined the chatroom from server.", userName);
+        }
+
+        public void AddMessageToQueue(string message)
+        {
+            messageList.Enqueue(message);
         }
 
         public string GetUserName(NetworkStream stream)
         {
-            byte[] message = System.Text.Encoding.ASCII.GetBytes("Enter your username?");
+            byte[] message = System.Text.Encoding.ASCII.GetBytes("Welcome to the ChatRoom!\nEnter your username?");
             stream.Write(message, 0, message.Length);
             byte[] userName = new Byte[256];
             stream.Read(userName, 0, userName.Length);
@@ -96,12 +95,50 @@ namespace Server
             return inputName;
         }
 
-        public void GetMessage()
+        public void GetMessage(Client client, string userName)
         {
             while (true)
             {
                 string message = client.Recieve();
-                Respond(message);
+                AddMessageToQueue(message);
+                Respond(client, message);
+            }
+        }
+
+        public void CheckForBroadcast()
+        {
+            while (true)
+            {
+                if (messageList.Count > 0 && clientList.Count > 0)
+                {
+                    BroadcastMessage(userName);
+                }
+            }
+        }
+
+        public void BroadcastMessage(string userName)
+        {
+            while (messageList.Count > 0)
+            {
+                //string message = messageList.Dequeue();
+                byte[] byteMessage = null;
+                try
+                {
+                    byteMessage = System.Text.Encoding.ASCII.GetBytes(messageList.Dequeue());
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                foreach (KeyValuePair<string, TcpClient> clientUser in clientList)
+                {
+                    if (userName != clientUser.Key)
+                    {
+                        NetworkStream stream = clientUser.Value.GetStream();
+                        stream.Write(byteMessage, 0, byteMessage.Length);
+                        stream.Flush();
+                    }
+                }
             }
         }
 

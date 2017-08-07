@@ -19,32 +19,50 @@ namespace Client
             clientSocket = new TcpClient();
             clientSocket.Connect(IPAddress.Parse(IP), port);
             stream = clientSocket.GetStream();
-            
+
         }
         public void Send()
         {
-            string messageString = UI.GetInput();
-            byte[] message = Encoding.ASCII.GetBytes(messageString);
-            stream.Write(message, 0, message.Count());
-            stream.Flush();
+            while (clientSocket.Connected == true)
+            {
+                string messageString = UI.GetInput();
+                byte[] message = Encoding.ASCII.GetBytes(messageString);
+                stream.Write(message, 0, message.Count());
+                stream.Flush();
+            }
         }
         public void Recieve()
         {
-            byte[] recievedMessage = new byte[256];
-            stream.Read(recievedMessage, 0, recievedMessage.Length);
-            UI.DisplayMessage(Encoding.ASCII.GetString(recievedMessage));
-            stream.Flush();
+            while (true)
+            {
+                byte[] recievedMessage = new byte[256];
+                stream.Read(recievedMessage, 0, recievedMessage.Length);
+                UI.DisplayMessage(Encoding.ASCII.GetString(recievedMessage).TrimEnd('\0'));
+                stream.Flush();
+            }
         }
 
         public void RunChat()
         {
-            while (true)
-            {
-                Thread receiveMessage = new Thread(Recieve);
-                receiveMessage.Start();
-                Thread sendMessage = new Thread(Send);
-                sendMessage.Start();            
-            }
+            //TcpClient clientSocket = new TcpClient();
+            //try
+            //{
+            //    clientSocket.Connect(IPAddress.Parse("127.0.0.1"), 9999);
+            //    Console.WriteLine("User Connected");
+            //}
+            //catch
+            //{
+            //    Console.WriteLine("Failed to connect to server");
+            //    return;
+            //}
+
+            //stream = clientSocket.GetStream();
+
+            Thread receiveMessage = new Thread(Recieve);
+            receiveMessage.Start();
+            Thread sendMessage = new Thread(Send);
+            sendMessage.Start();
+
         }
 
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Server
@@ -12,7 +13,7 @@ namespace Server
         {
             Server server = new Server();
             Task.Run(() => server.Run());
-            Console.WriteLine("Press any key to exit.");
+
             Console.ReadLine();
         }
     }
